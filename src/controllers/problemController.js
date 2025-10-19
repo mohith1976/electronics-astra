@@ -46,9 +46,8 @@ exports.updateProblem = async (req, res) => {
 
 exports.deleteProblem = async (req, res) => {
   try {
-    const problem = await Problem.findOne({ problem_id: req.params.id });
-    if (!problem) return res.status(404).json({ message: 'Problem not found' });
-    await problem.remove();
+    const result = await Problem.deleteOne({ problem_id: req.params.id });
+    if (result.deletedCount === 0) return res.status(404).json({ message: 'Problem not found' });
     res.json({ message: 'Problem deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
