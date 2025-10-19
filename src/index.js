@@ -14,6 +14,14 @@ app.use('/api/otp', otpRoutes);
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
+// Problems routes (MongoDB)
+const problemRoutes = require('./routes/problems');
+app.use('/api/problems', problemRoutes);
+
+// Serve uploads
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 // Example route
 app.get('/', (req, res) => {
   res.send('API is running');
@@ -23,6 +31,9 @@ const PORT = process.env.PORT || 5000;
 
 // Import models
 require('./models/User');
+// Connect to MongoDB
+const connectMongo = require('./config/mongo');
+connectMongo();
 
 sequelize.authenticate()
   .then(() => {
