@@ -102,3 +102,34 @@ exports.getProblem = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Delete a single image from a problem.images array and unlink the file
+exports.deleteProblemImage = async (req, res) => {
+  try {
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ message: 'image field required in body' });
+    // find index
+    const idx = problem.images.findIndex(p => p === image || p.endsWith(image));
+    if (idx === -1) return res.status(404).json({ message: 'Image not found on problem' });
+    // remove from array
+    const [removed] = problem.images.splice(idx, 1);
+    await problem.save();
+    // attempt unlink
+    try {
+      let rel = removed;
+      if (rel.startsWith('/')) rel = rel.slice(1);
+      const absolute = require('path').resolve(__dirname, '../../', rel);
+      if (require('fs').existsSync(absolute)) {
+        require('fs').unlinkSync(absolute);
+      }
+    } catch (e) {
+      // don't fail whole request if unlink fails; just log
+      console.error('Failed to delete image file', e.message);
+    }
+    res.json({ message: 'Image removed from problem', removed });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
