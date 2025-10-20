@@ -139,69 +139,149 @@ Admin (auth)
 - POST /api/admin/signup — body: `{ name, email, password }` (step1: sends OTP)
 - POST /api/admin/signup/verify — body: `{ email, otp }` (step2: create user)
 - POST /api/admin/login — body: `{ email, password }` (returns JWT)
-- GET /api/admin/profile — header: `Authorization: Bearer <token>`
-- PUT /api/admin/profile — header: `Authorization: Bearer <token>`, body: `{ name?, email?, password? }`
-- DELETE /api/admin/profile — header: `Authorization: Bearer <token>`
-- POST /api/admin/logout — header: `Authorization: Bearer <token>`
+NAME
+----
+Electronics-Astra — Backend (Node/Express)
 
-Problems (MongoDB)
-- POST /api/problems — create (admin only) — multipart/form-data: fields: `title`, `difficulty`, `tags` (JSON string or array), `description`, `constraints`, files: `images` (multiple). Header: `Authorization: Bearer <token>`
-- GET /api/problems — list problems (public)
-- GET /api/problems/:id — get problem by `problem_id` (public)
-- PUT /api/problems/:id — update problem (admin only) — can send updated fields and additional `images`
-- DELETE /api/problems/:id — delete problem (admin only)
+WHAT THIS IS
+----------------
+This repository contains the backend API for Electronics-Astra: an Express server that manages admin users (Postgres/Sequelize), and problem content and testcases (MongoDB/Mongoose). It supports JWT authentication, email OTP signup, local image uploads for problems, and per-problem testcases (visible/hidden) used for evaluation.
 
-Testcases (per-problem)
-- POST /api/problems/:id/testcases — add testcases (admin only)
-   - Body JSON: { "visible": [{"input":"...","output":"..."}], "hidden": [{"input":"...","output":"..."}] }
-   - Returns: created testcases (both visible and hidden) with their _id values
-- GET /api/problems/:id/testcases — get all testcases for a problem (admin only)
-   - Returns both visible and hidden testcases
-- GET /api/problems/:id/testcases/public — get only visible testcases (public)
-- GET /api/problems/:id/testcases/:tcid — get a single testcase by its id (admin only)
-- PUT /api/problems/:id/testcases/:tcid — update a testcase (admin only)
-   - Body JSON: { "input"?: "...", "output"?: "...", "visible"?: true|false }
-   - Returns: updated testcase document
-- DELETE /api/problems/:id/testcases/:tcid — delete a testcase (admin only)
-   - Returns: { message: 'Testcase deleted' }
+HOW TO INSTALL & SETUP IN VS CODE / ANY EDITOR
+------------------------------------------------
+Prerequisites
+- Node.js (v18+ recommended)
+- PostgreSQL (running and accessible)
+- MongoDB (local or Atlas)
+- Git
 
-Notes on images
-- During development images are stored in `/uploads` and served at `http://localhost:5000/uploads/<filename>`.
-- `Problem.images` stores URLs/paths to images. Frontend should use the URL as `src` in `<img>`.
-- For production, replace multer/local storage with a cloud storage solution (S3, GCS, etc.) and store public URLs.
+Quick steps (VS Code)
+1. Open VS Code and open this project folder (`backend/` inside the repo) or open the repo root.
+2. Open an integrated terminal (View → Terminal).
+3. Copy `.env.example` to `.env` or create `.env` at the project root and fill values (see section below).
+4. Install dependencies:
 
-## Testing with Postman
-
-1. Start server `npm run dev`.
-2. Request OTP: POST `/api/otp/request` with `{ "email": "you@domain.com" }`.
-3. Check email and get OTP.
-4. Verify OTP: POST `/api/otp/verify` with `{ "email": "you@domain.com", "otp": "123456" }`.
-5. Complete signup: POST `/api/admin/signup/verify` (if using the two-step signup implemented) and then login.
-6. Use returned JWT in `Authorization: Bearer <token>` header to create problems and test protected endpoints.
-
-Examples for creating problems (Postman)
-
-Multipart/form-data example:
-
-- URL: `POST http://localhost:5000/api/problems`
-- Headers: `Authorization: Bearer <token>`
-- Body (form-data):
-   - title: "Two Sum"
-   - difficulty: "easy"
-   - tags: "[\"array\", \"hashmap\"]"  (JSON string)
-   - description: "Given an array..."
-   - constraints: "n <= 1e5"
-   - images: (file) choose one or more files with key `images`
-
-If you prefer to send image URLs instead of uploading files, submit JSON body:
-
-```json
-{
-   "title": "Two Sum",
-   "difficulty": "easy",
-   "tags": ["array","hashmap"],
-   "description": "...",
-   "images": ["https://.../img1.png"]
-}
+```powershell
+cd backend
+npm install
 ```
+
+5. Start the dev server (auto-restarts on file change):
+
+```powershell
+npm run dev
+```
+
+6. Use Postman or similar to exercise the API endpoints. Set `Authorization: Bearer <token>` where required.
+
+ENV file (.env) - variables you must set
+- PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
+- MONGO_URI (mongodb://localhost:27017/electronics-astra or Atlas URI)
+- PORT (optional; default 5000)
+- JWT_SECRET (generate a secure random string)
+- EMAIL_USER and EMAIL_PASS (to send OTPs; use an app password for Gmail)
+
+NECESSARY PACKAGES (from package.json)
+-------------------------------------
+All dependencies are listed in `package.json`. Collective install command (already executed above):
+
+```powershell
+npm install
+```
+
+Key packages used:
+- express — web framework
+- dotenv — environment variables
+- cors — CORS support
+- sequelize, pg, pg-hstore — Postgres ORM
+- mongoose, mongodb — MongoDB ODM/driver
+- jsonwebtoken — JWT auth
+- bcryptjs — password hashing
+- nodemailer — send OTP emails
+- multer — file uploads (local)
+- uuid — generate unique problem/admin ids
+- nodemon — dev auto-reload (devDependency)
+
+CLONE + SETUP (step-by-step)
+--------------------------------
+1. Clone the repo:
+
+```powershell
+git clone <repo-url>
+cd electronics-astra/backend
+```
+
+2. Create `.env` with the variables listed earlier.
+3. Install dependencies: `npm install`.
+4. Start DBs (Postgres and Mongo) or ensure your cloud DBs are reachable.
+5. Run the server: `npm run dev`.
+
+WHAT WE'VE DEVELOPED SO FAR — FEATURES & HOW THEY WORK
+-------------------------------------------------------
+Core areas implemented
+
+1) Admin authentication (Postgres + Sequelize)
+- Signup with 2FA (OTP sent over email using Nodemailer).
+  - Flow: POST /api/otp/request → send email OTP. Verify with POST /api/otp/verify. Signup completes after OTP verification.
+- Login: POST /api/admin/login → returns JWT on success.
+- Profile endpoints: GET/PUT/DELETE /api/admin/profile (protected by JWT)
+
+2) Problems management (MongoDB + Mongoose)
+- Create problems (admin only) — supports multipart/form-data image uploads (stored in `/uploads`) and fields: title, difficulty, tags, description, constraints.
+- Read problems: GET /api/problems and GET /api/problems/:id (public).
+- Update problem (admin) — supports adding images on update.
+- Delete problem (admin) — deletes the Problem document, also:
+  - deletes all Testcase documents referencing that problem
+  - attempts to delete all locally stored image files referenced in `problem.images` (returns counts of deleted/failed files)
+
+3) Testcases (MongoDB)
+- Testcase model: linked to a problem by `problem_id`. Fields: input, output, visible(boolean), createdBy.
+- Add testcases (admin): POST /api/problems/:id/testcases with JSON containing arrays `visible` and `hidden`.
+- Get all testcases (admin): GET /api/problems/:id/testcases
+- Get public (visible) testcases: GET /api/problems/:id/testcases/public
+- Get single: GET /api/problems/:id/testcases/:tcid
+- Update single: PUT /api/problems/:id/testcases/:tcid
+- Delete single: DELETE /api/problems/:id/testcases/:tcid
+
+Data safety & validations implemented
+- Testcase endpoints verify the referenced Problem exists before operating to prevent orphan testcases.
+- Deleting a Problem deletes related testcases and attempts to delete referenced local files.
+- Upload middleware accepts multiple file field names and stores files in `/uploads` with unique names.
+
+Image management helpers
+- When updating a problem, uploaded images are appended to `problem.images`. If an admin wants to remove a particular image, there's an endpoint:
+  - DELETE /api/problems/:id/images — body: { "image": "/uploads/filename.jpg" } which removes the reference and unlinks the file.
+
+Developer notes and recommendations
+- OTP storage is in-memory for the demo — for production use persistent storage (Redis or DB) with expiry.
+- Local uploads are for development; move to S3/GCS in production and store public URLs.
+- The server currently unlinks files by resolving paths relative to the project root. For safety, I recommend enforcing a check that only allows deletion inside `uploads/`.
+- Consider adding express-validator or Joi to validate request bodies more strictly.
+
+How to test quickly (Postman smoke test)
+1. Start server: `npm run dev`.
+2. Request OTP / signup flow to create admin, or create admin directly in Postgres then login to get JWT.
+3. Create a problem (multipart/form-data) with at least one image. Note the returned `problem_id`.
+4. POST testcases to that problem. Note returned testcase `_id`.
+5. Update a testcase (PUT) and verify changes.
+6. Delete the problem (DELETE /api/problems/:id) and verify:
+   - Response includes deletedTestcases and deletedFiles counts.
+   - GET /api/problems/:id returns 404.
+   - Attempt to open the uploaded image URLs in browser — they should be gone if deletedFiles indicates success.
+
+Where to go from here (next improvements)
+- Persist OTPs in Redis and enforce expiry/attempt limits.
+- Harden file deletion to only allow deletions inside `uploads/`.
+- Add request validation (express-validator) and better error messages.
+- Add automated integration tests that run the create -> add testcases -> delete problem sequence and assert cleanup.
+- Move file storage to a cloud bucket and return public URLs in `problem.images`.
+
+Contact / Maintainers
+- Repo owner: mohith1976
+
+---
+
+If you want, I will:
+- implement the stricter "only delete inside uploads/" safety check now, and
+- add an automated smoke test script that runs the full lifecycle (create -> add testcases -> delete) and prints the results. Which would you like me to do next?
 
