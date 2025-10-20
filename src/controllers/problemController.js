@@ -1,4 +1,7 @@
 const Problem = require('../models/Problem');
+const Testcase = require('../models/Testcase');
+const fs = require('fs');
+const path = require('path');
 
 exports.createProblem = async (req, res) => {
   try {
@@ -46,9 +49,36 @@ exports.updateProblem = async (req, res) => {
 
 exports.deleteProblem = async (req, res) => {
   try {
-    const result = await Problem.deleteOne({ problem_id: req.params.id });
-    if (result.deletedCount === 0) return res.status(404).json({ message: 'Problem not found' });
-    res.json({ message: 'Problem deleted' });
+    // Ensure problem exists
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    // Delete related testcases
+    const tcResult = await Testcase.deleteMany({ problem_id: req.params.id });
+    // Attempt to delete files referenced in problem.images
+    let deletedFiles = 0;
+    let failedFiles = 0;
+    if (Array.isArray(problem.images) && problem.images.length) {
+      for (const imgPath of problem.images) {
+        try {
+          // Normalize and resolve local uploads paths like '/uploads/filename' or 'uploads/filename'
+          let rel = imgPath;
+          if (rel.startsWith('/')) rel = rel.slice(1);
+          const absolute = path.resolve(__dirname, '../../', rel);
+          if (fs.existsSync(absolute)) {
+            fs.unlinkSync(absolute);
+            deletedFiles++;
+          } else {
+            failedFiles++;
+          }
+        } catch (e) {
+          // count failures but continue
+          failedFiles++;
+        }
+      }
+    }
+    // Delete the problem
+    await Problem.deleteOne({ problem_id: req.params.id });
+    res.json({ message: 'Problem deleted', deletedTestcases: tcResult.deletedCount, deletedFiles, failedFiles });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

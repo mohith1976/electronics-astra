@@ -17,6 +17,9 @@ app.use('/api/admin', adminRoutes);
 // Problems routes (MongoDB)
 const problemRoutes = require('./routes/problems');
 app.use('/api/problems', problemRoutes);
+// Testcases router (mounted under /api/problems/:id/testcases)
+const testcaseRoutes = require('./routes/testcases');
+app.use('/api/problems/:id/testcases', testcaseRoutes);
 
 // Serve uploads
 const path = require('path');

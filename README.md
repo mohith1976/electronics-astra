@@ -151,6 +151,20 @@ Problems (MongoDB)
 - PUT /api/problems/:id — update problem (admin only) — can send updated fields and additional `images`
 - DELETE /api/problems/:id — delete problem (admin only)
 
+Testcases (per-problem)
+- POST /api/problems/:id/testcases — add testcases (admin only)
+   - Body JSON: { "visible": [{"input":"...","output":"..."}], "hidden": [{"input":"...","output":"..."}] }
+   - Returns: created testcases (both visible and hidden) with their _id values
+- GET /api/problems/:id/testcases — get all testcases for a problem (admin only)
+   - Returns both visible and hidden testcases
+- GET /api/problems/:id/testcases/public — get only visible testcases (public)
+- GET /api/problems/:id/testcases/:tcid — get a single testcase by its id (admin only)
+- PUT /api/problems/:id/testcases/:tcid — update a testcase (admin only)
+   - Body JSON: { "input"?: "...", "output"?: "...", "visible"?: true|false }
+   - Returns: updated testcase document
+- DELETE /api/problems/:id/testcases/:tcid — delete a testcase (admin only)
+   - Returns: { message: 'Testcase deleted' }
+
 Notes on images
 - During development images are stored in `/uploads` and served at `http://localhost:5000/uploads/<filename>`.
 - `Problem.images` stores URLs/paths to images. Frontend should use the URL as `src` in `<img>`.
