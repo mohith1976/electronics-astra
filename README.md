@@ -1,287 +1,714 @@
-# MERN Backend
+# Electronics-Astra Backend
 
-This is the backend for the MERN stack project `electronics-astra`.
-
-
-MongoDB and Images
-
-- Add `MONGO_URI` to your `.env`. Example:
-  - Local: `mongodb://localhost:27017/electronics-astra`
-  - Atlas: `mongodb+srv://<user>:<password>@cluster0.mongodb.net/electronics-astra?retryWrites=true&w=majority`
-- Problems API stores images as URLs in the `images` array on the Problem document.
-- For local testing we save uploaded images to `/uploads` and serve them statically at `http://localhost:5000/uploads/<filename>`.
-- For production, replace the upload handling with S3 or other object storage and save public URLs.
+A full-featured REST API backend for managing coding problems, testcases, and admin authentication. Built with Node.js, Express, PostgreSQL, and MongoDB.
 
 
+## 🎯 Overview
 
-# Electronics-Astra — Backend (Node/Express)
+Electronics-Astra Backend is a RESTful API service designed for managing coding problem platforms. It provides secure admin authentication with 2FA, problem management with image uploads, and comprehensive testcase handling for problem evaluation.
 
-This repository contains the backend services for the Electronics-Astra project.
-It currently exposes:
-
-- Admin authentication (Postgres + Sequelize)
-   - Signup with 2FA (OTP via email)
-   - Verify OTP to complete signup
-   - Login (JWT)
-   - Profile: view / edit / delete / logout
-- Problems management (MongoDB + Mongoose)
-   - Create problems (admin only) with title, difficulty, tags, description, images, constraints
-   - Read list of problems and single problem
-   - Update and delete problems (admin only)
-
-This README documents how to install, configure and test the project locally.
-
-## What we used
-
-- Node.js (v16+ recommended)
-- Express
-- PostgreSQL (Sequelize) — stores admin users
-- MongoDB (Mongoose) — stores problems and future problem-related data
-- JWT for authentication
-- Nodemailer for OTP emails
-- Multer for local image uploads (development)
-
-
-## Project Structure
-```
-
-backend/
-├─ src/
-│  ├─ config/
-│  │  ├─ db.js            # Sequelize/Postgres config
-│  │  └─ mongo.js         # Mongoose/MongoDB connection
-│  ├─ controllers/
-│  │  ├─ adminController.js
-│  │  ├─ otpController.js
-│  │  └─ problemController.js
-│  ├─ middlewares/
-│  │  ├─ auth.js
-│  │  └─ upload.js        # multer
-│  ├─ models/
-│  │  ├─ User.js          # Sequelize model (Postgres)
-│  │  └─ Problem.js       # Mongoose model (MongoDB)
-│  ├─ routes/
-│  │  ├─ admin.js
-│  │  ├─ otp.js
-│  │  └─ problems.js
-│  └─ services/
-│     ├─ otpService.js
-│     └─ pendingSignupService.js
-├─ uploads/                # local uploaded images (dev)
-├─ package.json
-└─ .env
-```
-
-## Environment variables
-
-Create `.env` in `backend/` with the following keys (example values shown):
-
-```
-# Postgres (Sequelize)
-PG_HOST=localhost
-PG_PORT=5432
-PG_DATABASE=electronics-astra
-PG_USER=postgres
-PG_PASSWORD=your_postgres_password
-
-# MongoDB (Mongoose)
-MONGO_URI=mongodb://localhost:27017/electronics-astra
-
-# Server
-PORT=5000
-JWT_SECRET=very_long_random_secret
-
-# Email (Gmail example - use app password)
-EMAIL_USER=youremail@gmail.com
-EMAIL_PASS=your_gmail_app_password
-```
-
-Keep this file out of source control. Do not commit secrets.
-
-## Install dependencies
-
-From `backend/`:
-
-```bash
-npm install
-```
-
-This installs:
-
-- express, dotenv, cors
-- sequelize, pg, pg-hstore
-- mongoose, mongodb
-- jsonwebtoken, bcryptjs
-- nodemailer
-- multer (file uploads)
-- uuid
-- nodemon (dev)
-
-## Run (development)
-
-Start the server (reloads on change with nodemon):
-
-```bash
-npm run dev
-```
-
-Server will attempt to connect to both Postgres (Sequelize) and MongoDB (Mongoose) when `MONGO_URI` is set and Postgres config is valid.
-
-## APIs (quick reference)
-
-Base URL: `http://localhost:5000`
-
-Authentication / OTP
-- POST /api/otp/request — body: `{ "email": "admin@example.com" }` (sends OTP email)
-- POST /api/otp/verify — body: `{ "email": "admin@example.com", "otp": "123456" }` (verify OTP for signup)
-
-Admin (auth)
-- POST /api/admin/signup — body: `{ name, email, password }` (step1: sends OTP)
-- POST /api/admin/signup/verify — body: `{ email, otp }` (step2: create user)
-- POST /api/admin/login — body: `{ email, password }` (returns JWT)
-NAME
-----
-Electronics-Astra — Backend (Node/Express)
-
-WHAT THIS IS
-----------------
-This repository contains the backend API for Electronics-Astra: an Express server that manages admin users (Postgres/Sequelize), and problem content and testcases (MongoDB/Mongoose). It supports JWT authentication, email OTP signup, local image uploads for problems, and per-problem testcases (visible/hidden) used for evaluation.
-
-HOW TO INSTALL & SETUP IN VS CODE / ANY EDITOR
-------------------------------------------------
-Prerequisites
-- Node.js (v18+ recommended)
-- PostgreSQL (running and accessible)
-- MongoDB (local or Atlas)
-- Git
-
-Quick steps (VS Code)
-1. Open VS Code and open this project folder (`backend/` inside the repo) or open the repo root.
-2. Open an integrated terminal (View → Terminal).
-3. Copy `.env.example` to `.env` or create `.env` at the project root and fill values (see section below).
-4. Install dependencies:
-
-```powershell
-cd backend
-npm install
-```
-
-5. Start the dev server (auto-restarts on file change):
-
-```powershell
-npm run dev
-```
-
-6. Use Postman or similar to exercise the API endpoints. Set `Authorization: Bearer <token>` where required.
-
-ENV file (.env) - variables you must set
-- PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
-- MONGO_URI (mongodb://localhost:27017/electronics-astra or Atlas URI)
-- PORT (optional; default 5000)
-- JWT_SECRET (generate a secure random string)
-- EMAIL_USER and EMAIL_PASS (to send OTPs; use an app password for Gmail)
-
-NECESSARY PACKAGES (from package.json)
--------------------------------------
-All dependencies are listed in `package.json`. Collective install command (already executed above):
-
-```powershell
-npm install
-```
-
-Key packages used:
-- express — web framework
-- dotenv — environment variables
-- cors — CORS support
-- sequelize, pg, pg-hstore — Postgres ORM
-- mongoose, mongodb — MongoDB ODM/driver
-- jsonwebtoken — JWT auth
-- bcryptjs — password hashing
-- nodemailer — send OTP emails
-- multer — file uploads (local)
-- uuid — generate unique problem/admin ids
-- nodemon — dev auto-reload (devDependency)
-
-CLONE + SETUP (step-by-step)
---------------------------------
-1. Clone the repo:
-
-```powershell
-git clone <repo-url>
-cd electronics-astra/backend
-```
-
-2. Create `.env` with the variables listed earlier.
-3. Install dependencies: `npm install`.
-4. Start DBs (Postgres and Mongo) or ensure your cloud DBs are reachable.
-5. Run the server: `npm run dev`.
-
-WHAT WE'VE DEVELOPED SO FAR — FEATURES & HOW THEY WORK
--------------------------------------------------------
-Core areas implemented
-
-1) Admin authentication (Postgres + Sequelize)
-- Signup with 2FA (OTP sent over email using Nodemailer).
-  - Flow: POST /api/otp/request → send email OTP. Verify with POST /api/otp/verify. Signup completes after OTP verification.
-- Login: POST /api/admin/login → returns JWT on success.
-- Profile endpoints: GET/PUT/DELETE /api/admin/profile (protected by JWT)
-
-2) Problems management (MongoDB + Mongoose)
-- Create problems (admin only) — supports multipart/form-data image uploads (stored in `/uploads`) and fields: title, difficulty, tags, description, constraints.
-- Read problems: GET /api/problems and GET /api/problems/:id (public).
-- Update problem (admin) — supports adding images on update.
-- Delete problem (admin) — deletes the Problem document, also:
-  - deletes all Testcase documents referencing that problem
-  - attempts to delete all locally stored image files referenced in `problem.images` (returns counts of deleted/failed files)
-
-3) Testcases (MongoDB)
-- Testcase model: linked to a problem by `problem_id`. Fields: input, output, visible(boolean), createdBy.
-- Add testcases (admin): POST /api/problems/:id/testcases with JSON containing arrays `visible` and `hidden`.
-- Get all testcases (admin): GET /api/problems/:id/testcases
-- Get public (visible) testcases: GET /api/problems/:id/testcases/public
-- Get single: GET /api/problems/:id/testcases/:tcid
-- Update single: PUT /api/problems/:id/testcases/:tcid
-- Delete single: DELETE /api/problems/:id/testcases/:tcid
-
-Data safety & validations implemented
-- Testcase endpoints verify the referenced Problem exists before operating to prevent orphan testcases.
-- Deleting a Problem deletes related testcases and attempts to delete referenced local files.
-- Upload middleware accepts multiple file field names and stores files in `/uploads` with unique names.
-
-Image management helpers
-- When updating a problem, uploaded images are appended to `problem.images`. If an admin wants to remove a particular image, there's an endpoint:
-  - DELETE /api/problems/:id/images — body: { "image": "/uploads/filename.jpg" } which removes the reference and unlinks the file.
-
-Developer notes and recommendations
-- OTP storage is in-memory for the demo — for production use persistent storage (Redis or DB) with expiry.
-- Local uploads are for development; move to S3/GCS in production and store public URLs.
-- The server currently unlinks files by resolving paths relative to the project root. For safety, I recommend enforcing a check that only allows deletion inside `uploads/`.
-- Consider adding express-validator or Joi to validate request bodies more strictly.
-
-How to test quickly (Postman smoke test)
-1. Start server: `npm run dev`.
-2. Request OTP / signup flow to create admin, or create admin directly in Postgres then login to get JWT.
-3. Create a problem (multipart/form-data) with at least one image. Note the returned `problem_id`.
-4. POST testcases to that problem. Note returned testcase `_id`.
-5. Update a testcase (PUT) and verify changes.
-6. Delete the problem (DELETE /api/problems/:id) and verify:
-   - Response includes deletedTestcases and deletedFiles counts.
-   - GET /api/problems/:id returns 404.
-   - Attempt to open the uploaded image URLs in browser — they should be gone if deletedFiles indicates success.
-
-Where to go from here (next improvements)
-- Persist OTPs in Redis and enforce expiry/attempt limits.
-- Harden file deletion to only allow deletions inside `uploads/`.
-- Add request validation (express-validator) and better error messages.
-- Add automated integration tests that run the create -> add testcases -> delete problem sequence and assert cleanup.
-- Move file storage to a cloud bucket and return public URLs in `problem.images`.
-
-Contact / Maintainers
-- Repo owner: mohith1976
+**Current Status**: Development/Beta - Not production-ready 
 
 ---
 
-If you want, I will:
-- implement the stricter "only delete inside uploads/" safety check now, and
-- add an automated smoke test script that runs the full lifecycle (create -> add testcases -> delete) and prints the results. Which would you like me to do next?
+## ✨ Features
 
+### Authentication & Authorization
+- ✅ Admin signup with email-based OTP verification (2FA)
+- ✅ JWT-based authentication
+- ✅ Secure password hashing (bcrypt)
+- ✅ Protected admin routes
+- ✅ Profile management (view, edit, delete)
+
+### Problem Management
+- ✅ CRUD operations for coding problems
+- ✅ Multi-image upload support
+- ✅ Rich problem metadata (title, difficulty, tags, description, constraints)
+- ✅ Public and admin-only endpoints
+- ✅ Cascade deletion (problems → testcases → files)
+
+### Testcase Management
+- ✅ Create visible and hidden testcases
+- ✅ Link testcases to specific problems
+- ✅ Public vs. admin-only testcase visibility
+- ✅ Individual testcase CRUD operations
+- ✅ Automatic cleanup on problem deletion
+
+---
+
+## 🛠 Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Runtime** | Node.js (v18+) |
+| **Framework** | Express.js |
+| **Databases** | PostgreSQL (admin data), MongoDB (problem data) |
+| **ORMs** | Sequelize (PostgreSQL), Mongoose (MongoDB) |
+| **Authentication** | JWT, bcryptjs |
+| **File Upload** | Multer |
+| **Email** | Nodemailer |
+| **Dev Tools** | nodemon, dotenv |
+
+---
+
+## 📦 Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+### Required Software
+
+1. **Node.js** (v18.0.0 or higher)
+   ```bash
+   node --version  # Should output v18.x.x or higher
+   ```
+   [Download Node.js](https://nodejs.org/)
+
+2. **PostgreSQL** (v12 or higher)
+   ```bash
+   psql --version  # Should output PostgreSQL 12.x or higher
+   ```
+   [Download PostgreSQL](https://www.postgresql.org/download/)
+
+3. **MongoDB** (v5.0 or higher)
+   ```bash
+   mongod --version  # Should output v5.x.x or higher
+   ```
+   [Download MongoDB Community Server](https://www.mongodb.com/try/download/community)
+
+4. **Git**
+   ```bash
+   git --version
+   ```
+
+### Account Setup
+
+- **Gmail Account**: Required for sending OTP emails (you'll need an [App Password](https://support.google.com/accounts/answer/185833))
+- **MongoDB Atlas** (Optional): For cloud MongoDB hosting
+
+---
+
+## 🚀 Installation
+
+### Step 1: Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/mohith1976/electronics-astra.git
+
+# Navigate to backend directory
+cd electronics-astra/backend
+```
+
+### Step 2: Install Dependencies
+
+```bash
+npm install
+```
+
+This installs all required packages:
+- `express`, `cors`, `dotenv` - Server essentials
+- `sequelize`, `pg`, `pg-hstore` - PostgreSQL ORM
+- `mongoose` - MongoDB ODM
+- `jsonwebtoken`, `bcryptjs` - Authentication
+- `nodemailer` - Email OTP delivery
+- `multer`, `uuid` - File uploads
+- `nodemon` - Development auto-reload
+
+### Step 3: Database Setup
+
+#### PostgreSQL Setup
+
+```bash
+# Login to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE electronics_astra;
+
+# Exit psql
+\q
+```
+
+#### MongoDB Setup (Local)
+
+```bash
+# Start MongoDB service (Windows)
+net start MongoDB
+
+# Start MongoDB service (macOS/Linux)
+sudo systemctl start mongod
+
+# Verify MongoDB is running
+mongosh
+# Should connect successfully
+```
+
+#### MongoDB Setup (Atlas - Cloud)
+
+1. Create account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a new cluster (free tier available)
+3. Add database user with password
+4. Whitelist your IP address (or use 0.0.0.0/0 for development)
+5. Get connection string (looks like: `mongodb+srv://username:password@cluster0.mongodb.net/electronics-astra`)
+
+---
+
+## ⚙️ Configuration
+
+### Step 1: Create Environment File
+
+Create a `.env` file in the `backend/` directory:
+
+```bash
+# In backend/ directory
+touch .env  # macOS/Linux
+# OR
+type nul > .env  # Windows
+```
+
+### Step 2: Configure Environment Variables
+
+Add the following to your `.env` file:
+
+```env
+# PostgreSQL Configuration
+PG_HOST=localhost
+PG_PORT=5432
+PG_DATABASE=electronics_astra
+PG_USER=postgres
+PG_PASSWORD=your_postgres_password
+
+# MongoDB Configuration (choose one)
+# Local MongoDB
+MONGO_URI=mongodb://localhost:27017/electronics-astra
+# OR Atlas MongoDB
+# MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/electronics-astra?retryWrites=true&w=majority
+
+# Server Configuration
+PORT=5000
+JWT_SECRET=your_very_long_random_secret_key_here_min_32_characters
+
+# Email Configuration (Gmail)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your_16_character_app_password
+```
+
+### Step 3: Generate Secure JWT Secret
+
+```bash
+# Generate a secure random string (Node.js)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Copy the output and use it as your `JWT_SECRET`.
+
+### Step 4: Get Gmail App Password
+
+1. Go to [Google Account Security](https://myaccount.google.com/security)
+2. Enable 2-Step Verification
+3. Go to [App Passwords](https://myaccount.google.com/apppasswords)
+4. Select "Mail" and "Other (Custom name)"
+5. Generate password (16 characters, no spaces)
+6. Use this as `EMAIL_PASS` in `.env`
+
+⚠️ **Security Warning**: Never commit `.env` to version control. It's already in `.gitignore`.
+
+---
+
+## 🏃 Running the Application
+
+### Development Mode (with auto-reload)
+
+```bash
+npm run dev
+```
+
+You should see:
+```
+Server running on port 5000
+PostgreSQL connected
+MongoDB connected successfully
+```
+
+### Production Mode
+
+```bash
+npm start
+```
+
+### Verify Server is Running
+
+Open browser and navigate to:
+```
+http://localhost:5000
+```
+
+You should see the Express welcome message or 404 (depending on root route configuration).
+
+### Troubleshooting
+
+**PostgreSQL connection fails**
+```bash
+# Check PostgreSQL is running
+# Windows
+net start postgresql-x64-14
+
+# macOS/Linux
+sudo systemctl status postgresql
+```
+
+**MongoDB connection fails**
+```bash
+# Check MongoDB is running
+# Windows
+net start MongoDB
+
+# macOS/Linux
+sudo systemctl status mongod
+
+# Check connection string
+mongosh "your_MONGO_URI_here"
+```
+
+**Port 5000 already in use**
+- Change `PORT=5000` to another port in `.env` (e.g., `PORT=5001`)
+
+---
+
+## 📚 API Documentation
+
+### Base URL
+```
+http://localhost:5000
+```
+
+### Authentication Flow
+
+#### 1. Request OTP for Signup
+```http
+POST /api/otp/request
+Content-Type: application/json
+
+{
+  "email": "admin@example.com"
+}
+```
+
+**Response (200)**:
+```json
+{
+  "message": "OTP sent successfully"
+}
+```
+
+#### 2. Verify OTP and Complete Signup
+```http
+POST /api/admin/signup/verify
+Content-Type: application/json
+
+{
+  "name": "Admin Name",
+  "email": "admin@example.com",
+  "password": "SecurePassword123!",
+  "otp": "123456"
+}
+```
+
+**Response (201)**:
+```json
+{
+  "message": "Admin registered successfully",
+  "admin": {
+    "id": "uuid-here",
+    "name": "Admin Name",
+    "email": "admin@example.com"
+  }
+}
+```
+
+#### 3. Login
+```http
+POST /api/admin/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+**Response (200)**:
+```json
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "admin": {
+    "id": "uuid-here",
+    "name": "Admin Name",
+    "email": "admin@example.com"
+  }
+}
+```
+
+### Problem Management
+
+#### 4. Create Problem (Admin Only)
+```http
+POST /api/problems
+Authorization: Bearer <your_jwt_token>
+Content-Type: multipart/form-data
+
+title: "Two Sum"
+difficulty: "Easy"
+tags: ["Array", "Hash Table"]
+description: "Given an array of integers..."
+constraints: "1 <= nums.length <= 10^4"
+images: [File1, File2]
+```
+
+**Response (201)**:
+```json
+{
+  "problem": {
+    "_id": "problem_id_here",
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "tags": ["Array", "Hash Table"],
+    "description": "Given an array of integers...",
+    "constraints": "1 <= nums.length <= 10^4",
+    "images": ["/uploads/image1.jpg", "/uploads/image2.jpg"],
+    "createdBy": "admin_id",
+    "createdAt": "2025-10-20T10:30:00.000Z"
+  }
+}
+```
+
+#### 5. Get All Problems (Public)
+```http
+GET /api/problems
+```
+
+#### 6. Get Single Problem (Public)
+```http
+GET /api/problems/:id
+```
+
+#### 7. Update Problem (Admin Only)
+```http
+PUT /api/problems/:id
+Authorization: Bearer <your_jwt_token>
+Content-Type: multipart/form-data
+
+title: "Updated Title"
+difficulty: "Medium"
+```
+
+#### 8. Delete Problem (Admin Only)
+```http
+DELETE /api/problems/:id
+Authorization: Bearer <your_jwt_token>
+```
+
+**Response (200)**:
+```json
+{
+  "message": "Problem and all related data deleted successfully",
+  "deletedTestcases": 5,
+  "deletedFiles": {
+    "success": 3,
+    "failed": 0
+  }
+}
+```
+
+### Testcase Management
+
+#### 9. Add Testcases to Problem (Admin Only)
+```http
+POST /api/problems/:id/testcases
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
+
+{
+  "visible": [
+    {
+      "input": "[2,7,11,15]\n9",
+      "output": "[0,1]"
+    }
+  ],
+  "hidden": [
+    {
+      "input": "[3,2,4]\n6",
+      "output": "[1,2]"
+    }
+  ]
+}
+```
+
+**Response (201)**:
+```json
+{
+  "message": "Testcases added successfully",
+  "visible": [...],
+  "hidden": [...]
+}
+```
+
+#### 10. Get All Testcases (Admin Only)
+```http
+GET /api/problems/:id/testcases
+Authorization: Bearer <your_jwt_token>
+```
+
+#### 11. Get Public Testcases (No Auth Required)
+```http
+GET /api/problems/:id/testcases/public
+```
+
+#### 12. Update Single Testcase (Admin Only)
+```http
+PUT /api/problems/:id/testcases/:testcase_id
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
+
+{
+  "input": "updated input",
+  "output": "updated output"
+}
+```
+
+#### 13. Delete Single Testcase (Admin Only)
+```http
+DELETE /api/problems/:id/testcases/:testcase_id
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## 🧪 Testing Guide
+
+### Manual Testing with Postman
+
+#### Setup Postman Environment
+
+1. Create new environment in Postman
+2. Add variables:
+   - `base_url`: `http://localhost:5000`
+   - `admin_token`: (will be set after login)
+
+#### Test Sequence
+
+**Test 1: Complete Authentication Flow**
+
+1. Request OTP
+   - Method: POST
+   - URL: `{{base_url}}/api/otp/request`
+   - Body: `{"email": "test@example.com"}`
+   - ✅ Expect: 200, "OTP sent successfully"
+   - Check your email for OTP
+
+2. Complete Signup
+   - Method: POST
+   - URL: `{{base_url}}/api/admin/signup/verify`
+   - Body: Include name, email, password, and OTP from email
+   - ✅ Expect: 201, admin object returned
+
+3. Login
+   - Method: POST
+   - URL: `{{base_url}}/api/admin/login`
+   - Body: `{"email": "test@example.com", "password": "your_password"}`
+   - ✅ Expect: 200, JWT token returned
+   - **Save the token** to `admin_token` environment variable
+
+**Test 2: Problem Lifecycle**
+
+4. Create Problem
+   - Method: POST
+   - URL: `{{base_url}}/api/problems`
+   - Headers: `Authorization: Bearer {{admin_token}}`
+   - Body: form-data with title, difficulty, description
+   - ✅ Expect: 201, problem object with `_id`
+   - **Save problem `_id`** for next tests
+
+5. Get All Problems
+   - Method: GET
+   - URL: `{{base_url}}/api/problems`
+   - ✅ Expect: 200, array containing your problem
+
+6. Get Single Problem
+   - Method: GET
+   - URL: `{{base_url}}/api/problems/{{problem_id}}`
+   - ✅ Expect: 200, problem details
+
+**Test 3: Testcase Management**
+
+7. Add Testcases
+   - Method: POST
+   - URL: `{{base_url}}/api/problems/{{problem_id}}/testcases`
+   - Headers: `Authorization: Bearer {{admin_token}}`
+   - Body: JSON with visible and hidden arrays
+   - ✅ Expect: 201, testcases created
+   - **Save a testcase `_id`**
+
+8. Get Public Testcases
+   - Method: GET
+   - URL: `{{base_url}}/api/problems/{{problem_id}}/testcases/public`
+   - ✅ Expect: 200, only visible testcases returned
+
+9. Get All Testcases (Admin)
+   - Method: GET
+   - URL: `{{base_url}}/api/problems/{{problem_id}}/testcases`
+   - Headers: `Authorization: Bearer {{admin_token}}`
+   - ✅ Expect: 200, both visible and hidden testcases
+
+**Test 4: Cleanup & Cascade Deletion**
+
+10. Delete Problem
+    - Method: DELETE
+    - URL: `{{base_url}}/api/problems/{{problem_id}}`
+    - Headers: `Authorization: Bearer {{admin_token}}`
+    - ✅ Expect: 200, deletedTestcases count > 0
+
+11. Verify Cleanup
+    - Try to GET the problem again
+    - ✅ Expect: 404, problem not found
+
+### Expected Error Responses
+
+| Scenario | Status | Response |
+|----------|--------|----------|
+| Invalid OTP | 400 | `{"error": "Invalid OTP"}` |
+| Expired OTP | 400 | `{"error": "OTP expired"}` |
+| Missing JWT | 401 | `{"error": "Unauthorized"}` |
+| Invalid JWT | 403 | `{"error": "Invalid token"}` |
+| Problem not found | 404 | `{"error": "Problem not found"}` |
+| Duplicate email | 409 | `{"error": "Email already exists"}` |
+
+---
+
+## 📁 Project Structure
+
+```
+backend/
+├── src/
+│   ├── config/
+│   │   ├── db.js              # Sequelize/PostgreSQL configuration
+│   │   └── mongo.js           # Mongoose/MongoDB connection
+│   │
+│   ├── controllers/
+│   │   ├── adminController.js # Admin auth logic
+│   │   ├── otpController.js   # OTP generation/verification
+│   │   └── problemController.js # Problem & testcase CRUD
+│   │
+│   ├── middlewares/
+│   │   ├── auth.js            # JWT verification middleware
+│   │   └── upload.js          # Multer file upload config
+│   │
+│   ├── models/
+│   │   ├── User.js            # Sequelize User model (PostgreSQL)
+│   │   ├── Problem.js         # Mongoose Problem model
+│   │   └── Testcase.js        # Mongoose Testcase model
+│   │
+│   ├── routes/
+│   │   ├── admin.js           # /api/admin/* routes
+│   │   ├── otp.js             # /api/otp/* routes
+│   │   └── problems.js        # /api/problems/* routes
+│   │
+│   ├── services/
+│   │   ├── otpService.js      # OTP email sending logic
+│   │   └── pendingSignupService.js # Temporary signup data store
+│   │
+│   └── server.js              # Express app entry point
+│
+├── uploads/                   # Local file storage (dev only)
+├── .env                       # Environment variables (DO NOT COMMIT)
+├── .env.example               # Example environment file
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── README.md
+```
+
+---
+
+## ⚠️ Known Limitations
+
+**🔴 CRITICAL - Not Production Ready**
+
+This project is currently in **development/beta** stage. Do NOT deploy to production without addressing:
+
+### Security Issues
+
+1. **In-Memory OTP Storage**
+   - OTPs are stored in application memory
+   - Lost on server restart
+   - Not suitable for distributed systems
+   - **Fix**: Use Redis or database with TTL
+
+2. **File Deletion Vulnerability**
+   - Current implementation allows deletion of any file server has access to
+   - No path traversal protection
+   - **Fix**: Restrict deletions to `uploads/` directory only
+
+3. **No Rate Limiting**
+   - APIs can be abused (OTP spam, brute force)
+   - **Fix**: Implement express-rate-limit
+
+4. **Local File Storage**
+   - Files stored on server filesystem
+   - Not scalable for multiple servers
+   - **Fix**: Use S3, Cloudinary, or similar cloud storage
+
+### Missing Features
+
+- Input validation (no express-validator or Joi)
+- API request logging
+- Automated tests (unit, integration)
+- Database migrations system
+- API versioning
+- CORS configuration for production
+- Error monitoring (Sentry, etc.)
+- Health check endpoints
+
+### Recommendations Before Production
+
+1. Implement Redis for OTP storage
+2. Add comprehensive input validation
+3. Switch to cloud file storage (S3/GCS)
+4. Add request rate limiting
+5. Implement proper logging (Winston, Morgan)
+6. Add integration tests
+7. Set up CI/CD pipeline
+8. Configure production CORS policies
+9. Add API documentation (Swagger/OpenAPI)
+10. Implement database backup strategy
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Contribution Guidelines
+
+- Follow existing code style
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting PR
+
+---
+
+
+## 👤 Author
+
+**Mohith**
+- GitHub: [@mohith1976](https://github.com/mohith1976)
+
+---
+**Happy Coding! 🚀**
