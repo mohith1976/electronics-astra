@@ -29,4 +29,8 @@ router.put('/:id', auth, (req, res, next) => {
 // Delete problem (admin only)
 router.delete('/:id', auth, problemController.deleteProblem);
 
+// Delete a specific image from a problem (admin) - body: { "image": "/uploads/file.jpg" }
+router.delete('/:id/images', auth, problemController.deleteProblemImage);
+
 module.exports = router;
+
