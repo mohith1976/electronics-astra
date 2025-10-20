@@ -71,7 +71,7 @@ exports.deleteProblem = async (req, res) => {
             failedFiles++;
           }
         } catch (e) {
-          // count failures but continue
+          
           failedFiles++;
         }
       }
