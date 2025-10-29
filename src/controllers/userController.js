@@ -3,30 +3,6 @@ const Testcase = require('../models/Testcase');
 const fs = require('fs');
 const path = require('path');
 
-exports.createProblem = async (req, res) => {
-  try {
-    const { title, difficulty, tags, description, constraints } = req.body;
-    if (!title) return res.status(400).json({ message: 'Title required' });
-    const images = [];
-    if (req.files && req.files.length) {
-      req.files.forEach(f => images.push(`/uploads/${f.filename}`));
-    }
-    const parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
-    const problem = await Problem.create({
-      title,
-      difficulty,
-      tags: parsedTags,
-      description,
-      images,
-      constraints,
-      createdBy: req.user && req.user.id,
-    });
-    res.status(201).json({ problem });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
-
 exports.updateProblem = async (req, res) => {
   try {
     const problem = await Problem.findOne({ problem_id: req.params.id });
