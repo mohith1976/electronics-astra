@@ -212,6 +212,19 @@ Copy the output and use it as your `JWT_SECRET`.
 5. Generate password (16 characters, no spaces)
 6. Use this as `EMAIL_PASS` in `.env`
 
+
+## MongoDB and Images
+
+- Add `MONGO_URI` to your `.env`. Example:
+  - Local: `mongodb://localhost:27017/electronics-astra`
+  - Atlas: `mongodb+srv://<user>:<password>@cluster0.mongodb.net/electronics-astra?retryWrites=true&w=majority`
+- Problems API stores images as URLs in the `images` array on the Problem document.
+- For local testing we save uploaded images to `/uploads` and serve them statically at `http://localhost:5000/uploads/<filename>`.
+- For production, replace the upload handling with S3 or other object storage and save public URLs.
+
+
+
+## Install dependencies
 ⚠️ **Security Warning**: Never commit `.env` to version control. It's already in `.gitignore`.
 
 ---
