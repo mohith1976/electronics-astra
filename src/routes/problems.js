@@ -15,6 +15,17 @@ router.post('/', auth, (req, res, next) => {
 }, problemController.createProblem);
 // List problems
 router.get('/', problemController.listProblems);
+// Hints routes (place before '/:id' so '/:id/hints' doesn't get captured by '/:id')
+// Public: list visible hints
+router.get('/:id/hints', problemController.listHints);
+// Admin: list all hints
+router.get('/:id/hints/admin', auth, problemController.listHintsAdmin);
+// Admin: add a hint
+router.post('/:id/hints', auth, problemController.addHint);
+// Admin: update a hint
+router.put('/:id/hints/:hintId', auth, problemController.updateHint);
+// Admin: delete a hint
+router.delete('/:id/hints/:hintId', auth, problemController.deleteHint);
 // Get single problem by problem_id
 router.get('/:id', problemController.getProblem);
 // Update problem (admin only)

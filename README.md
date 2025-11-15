@@ -747,3 +747,53 @@ Contributions are welcome! Please follow these steps:
 
 ---
 **Happy Coding! 🚀**
+
+---
+
+## 📝 Hints (new feature)
+
+Admins can attach hints to problems. Hints are rich objects with: `text`, `order`, and `visibleToStudents` (boolean). Admins can add, update and delete hints; students/public callers will only see hints where `visibleToStudents: true`.
+
+Endpoints added:
+
+- Add hint (admin only):
+
+  POST /api/problems/:id/hints
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+
+  Body example:
+  {
+    "text": "Consider using a hash map to reduce complexity.",
+    "order": 1,
+    "visibleToStudents": true
+  }
+
+- List visible hints (public):
+
+  GET /api/problems/:id/hints
+
+- List all hints (admin):
+
+  GET /api/problems/:id/hints/admin
+  Authorization: Bearer <your_jwt_token>
+
+- Update a hint (admin):
+
+  PUT /api/problems/:id/hints/:hintId
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+
+  Body example:
+  {
+    "text": "Updated hint text",
+    "visibleToStudents": false
+  }
+
+- Delete a hint (admin):
+
+  DELETE /api/problems/:id/hints/:hintId
+  Authorization: Bearer <your_jwt_token>
+
+Notes:
+- The Problem model stores `hints` as an array of subdocuments. Existing documents remain compatible (no migration required). New endpoints are protected with the existing `auth` middleware for admin actions.
