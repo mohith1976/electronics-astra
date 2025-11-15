@@ -97,7 +97,91 @@ exports.getProblem = async (req, res) => {
   try {
     const problem = await Problem.findOne({ problem_id: req.params.id });
     if (!problem) return res.status(404).json({ message: 'Problem not found' });
-    res.json({ problem });
+    // For public callers, only show hints that are visibleToStudents
+    const obj = problem.toObject ? problem.toObject() : problem;
+    if (Array.isArray(obj.hints)) {
+      // If request is unauthenticated (no auth middleware), filter hints to visible only
+      // Admins should use the protected admin hints route to see all hints
+      obj.hints = obj.hints.filter(h => h.visibleToStudents === true);
+    }
+    res.json({ problem: obj });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// List hints (public) - only visible hints
+exports.listHints = async (req, res) => {
+  try {
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    const visible = (problem.hints || []).filter(h => h.visibleToStudents === true);
+    res.json({ hints: visible });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// List hints (admin) - protected route will supply req.user via auth middleware
+exports.listHintsAdmin = async (req, res) => {
+  try {
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    res.json({ hints: problem.hints || [] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Add a hint (admin only)
+exports.addHint = async (req, res) => {
+  try {
+    const { text, order, visibleToStudents } = req.body;
+    if (!text) return res.status(400).json({ message: 'Hint text is required' });
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    const hintObj = { text, order: typeof order !== 'undefined' ? Number(order) : (problem.hints.length + 1), visibleToStudents: typeof visibleToStudents !== 'undefined' ? Boolean(visibleToStudents) : true };
+    problem.hints.push(hintObj);
+    await problem.save();
+    // Return the last pushed hint (has _id assigned by mongoose)
+    const added = problem.hints[problem.hints.length - 1];
+    res.status(201).json({ hint: added });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Update a hint (admin only)
+exports.updateHint = async (req, res) => {
+  try {
+    const { hintId } = req.params;
+    const { text, order, visibleToStudents } = req.body;
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    const hint = problem.hints.id(hintId);
+    if (!hint) return res.status(404).json({ message: 'Hint not found' });
+    if (typeof text !== 'undefined') hint.text = text;
+    if (typeof order !== 'undefined') hint.order = Number(order);
+    if (typeof visibleToStudents !== 'undefined') hint.visibleToStudents = Boolean(visibleToStudents);
+    await problem.save();
+    res.json({ hint });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Delete a hint (admin only)
+exports.deleteHint = async (req, res) => {
+  try {
+    const { hintId } = req.params;
+    const problem = await Problem.findOne({ problem_id: req.params.id });
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    // Safer removal: do not rely on subdocument remove() method
+    const idx = (problem.hints || []).findIndex(h => String(h._id || h.id || h._id) === String(hintId));
+    if (idx === -1) return res.status(404).json({ message: 'Hint not found' });
+    problem.hints.splice(idx, 1);
+    await problem.save();
+    res.json({ message: 'Hint removed' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

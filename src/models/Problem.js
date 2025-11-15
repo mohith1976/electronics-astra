@@ -9,6 +9,15 @@ const ProblemSchema = new mongoose.Schema({
   description: { type: String },
   images: [{ type: String }], // store image URLs or base64 refs
   constraints: { type: String },
+  // Hints: array of objects with text, order and visibility flag
+  hints: [
+    {
+      text: { type: String, required: true },
+      order: { type: Number, default: 0 },
+      visibleToStudents: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   acceptanceRate: { type: Number, default: 0 },
   submissionCount: { type: Number, default: 0 },
   createdBy: { type: String }, // admin_id
