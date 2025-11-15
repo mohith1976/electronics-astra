@@ -364,6 +364,27 @@ Content-Type: application/json
 }
 ```
 
+#### 3.b Admin Reset Password (Admin only)
+
+```http
+POST /api/admin/reset-password
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "newPassword": "NewSecurePassword123!"
+}
+```
+
+Response (200):
+
+```json
+{
+  "message": "Password updated successfully"
+}
+```
+
 ### Problem Management
 
 #### 4. Create Problem (Admin Only)

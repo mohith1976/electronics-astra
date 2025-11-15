@@ -15,5 +15,7 @@ router.put('/profile', auth, adminController.editProfile);
 router.delete('/profile', auth, adminController.deleteProfile);
 // Logout
 router.post('/logout', auth, adminController.logout);
+// Admin reset password (protected)
+router.post('/reset-password', auth, adminController.resetPassword);
 
 module.exports = router;

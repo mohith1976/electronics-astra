@@ -115,3 +115,33 @@ exports.deleteProfile = async (req, res) => {
 exports.logout = (req, res) => {
   res.json({ message: 'Logged out' });
 };
+
+// Admin reset password
+// Accepts { email, newPassword } or { admin_id, newPassword }
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, admin_id, newPassword } = req.body;
+    if (!newPassword || (typeof newPassword !== 'string') || newPassword.length < 6) {
+      return res.status(400).json({ message: 'newPassword is required and must be at least 6 characters' });
+    }
+
+    let admin;
+    if (email) {
+      admin = await User.findOne({ where: { email } });
+    } else if (admin_id) {
+      admin = await User.findOne({ where: { admin_id } });
+    } else {
+      return res.status(400).json({ message: 'Provide email or admin_id to identify the admin to reset' });
+    }
+
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    // Hash and save
+    const hashed = await bcrypt.hash(newPassword, 10);
+    admin.password = hashed;
+    await admin.save();
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
